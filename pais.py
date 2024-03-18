@@ -2,36 +2,40 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Carregar os dados do arquivo CSV
+# Carregar o arquivo CSV
 @st.cache
 def load_data():
-    df = pd.read_csv("paises.csv")
+    df = pd.read_csv("paises.csv")  # Substitua "nome_do_arquivo.csv" pelo caminho do seu arquivo CSV
     return df
 
-# Função para exibir as cidades de um país selecionado
-def show_country_cities(df, selected_country):
-    filtered_df = df[df['CountryCode'] == selected_country]
-    st.write(f"Cidades de {selected_country}:")
-    st.dataframe(filtered_df)
-    return filtered_df
-
-# Função para plotar um gráfico de barras com base na população das cidades do país selecionado
-def plot_population_bar_chart(filtered_df, selected_country):
-    fig = px.bar(filtered_df, x='Name', y='Population', labels={'Name': 'Cidade', 'Population': 'População'},
-                 title=f'População das Cidades em {selected_country}')
-    fig.update_xaxes(tickangle=45)
-    fig.update_layout(height=600, width=1000)
-    st.plotly_chart(fig, use_container_width=True)
-
-# Carregar os dados do arquivo CSV
+# Carregar os dados
 df = load_data()
 
-# Selecionar um país específico
-countries = df['CountryCode'].unique().tolist()
-selected_country = st.sidebar.selectbox("Selecione um país:", countries)
+# Exibir widgets para seleção de país e critérios de pesquisa
+st.sidebar.title("Filtros de Pesquisa")
+countries = st.sidebar.multiselect("Selecione país(es):", df['CountryCode'].unique().tolist())
+name_query = st.sidebar.text_input("Digite o nome da cidade:")
+district_query = st.sidebar.text_input("Digite o nome do distrito:")
+population_query = st.sidebar.number_input("Digite a população mínima:", value=0)
 
-# Exibir as cidades do país selecionado
-filtered_df = show_country_cities(df, selected_country)
+# Aplicar filtros aos dados
+filtered_df = df.copy()
+if countries:
+    filtered_df = filtered_df[filtered_df['CountryCode'].isin(countries)]
+if name_query:
+    filtered_df = filtered_df[filtered_df['Name'].str.contains(name_query, case=False)]
+if district_query:
+    filtered_df = filtered_df[filtered_df['District'].str.contains(district_query, case=False)]
+if population_query:
+    filtered_df = filtered_df[filtered_df['Population'] >= population_query]
 
-# Plotar um gráfico de barras com base na população das cidades do país selecionado
-plot_population_bar_chart(filtered_df, selected_country)
+# Exibir as cidades filtradas
+st.write("Cidades Filtradas:")
+st.dataframe(filtered_df)
+
+# Plotar um gráfico de barras com base na população das cidades filtradas
+fig = px.bar(filtered_df, x='Name', y='Population', labels={'Name': 'Cidade', 'Population': 'População'},
+             title='População das Cidades')
+fig.update_xaxes(tickangle=45)
+fig.update_layout(height=600, width=1000)
+st.plotly_chart(fig, use_container_width=True)
