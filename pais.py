@@ -1,72 +1,37 @@
 import streamlit as st
-import mysql.connector
 import pandas as pd
 import plotly.express as px
 
-# Função para se conectar ao banco de dados MySQL
-def connect_to_mysql():
-    try:
-        connection = mysql.connector.connect(
-            host="192.168.254.240",
-            user="root",
-            password="gmr123.",
-            database="world"
-        )
-        if connection.is_connected():
-            db_info = connection.get_server_info()
-            st.write(f"Conectado ao MySQL Server versão {db_info}")
-            return connection
-    except mysql.connector.Error as e:
-        st.error(f"Erro ao conectar ao MySQL Server: {e}")
-        return None
+# Carregar os dados do arquivo CSV
+@st.cache
+def load_data():
+    df = pd.read_csv("paises.csv")
+    return df
 
-# Função para executar consultas SQL
-def execute_query(connection, query):
-    try:
-        cursor = connection.cursor()
-        cursor.execute(query)
-        return cursor
-    except mysql.connector.Error as e:
-        st.error(f"Erro ao executar a consulta: {e}")
-        return None
+# Função para exibir as cidades de um país selecionado
+def show_country_cities(df, selected_country):
+    filtered_df = df[df['CountryCode'] == selected_country]
+    st.write(f"Cidades de {selected_country}:")
+    st.dataframe(filtered_df)
+    return filtered_df
 
-# Conectar ao banco de dados
-connection = connect_to_mysql()
+# Função para plotar um gráfico de barras com base na população das cidades do país selecionado
+def plot_population_bar_chart(filtered_df, selected_country):
+    fig = px.bar(filtered_df, x='Name', y='Population', labels={'Name': 'Cidade', 'Population': 'População'},
+                 title=f'População das Cidades em {selected_country}')
+    fig.update_xaxes(tickangle=45)
+    fig.update_layout(height=600, width=1000)
+    st.plotly_chart(fig, use_container_width=True)
 
-# Verificar se a conexão foi bem sucedida antes de prosseguir
-if connection:
-    # Exemplo de consulta SQL
-    query = """SELECT * FROM city;"""
-    cursor = execute_query(connection, query)
-    
-    # Exibir os resultados da consulta
-    if cursor:
-        result = cursor.fetchall()
-        if result:
-            # Criar um DataFrame pandas a partir dos resultados da consulta
-            df = pd.DataFrame(result, columns=['ID', 'Name', 'CountryCode', 'District', 'Population'])
-            
-            # Selecionar um país específico
-            countries = df['CountryCode'].unique().tolist()
-            selected_country = st.sidebar.selectbox("Selecione um país:", countries)
-            
-            # Filtrar as cidades pelo país selecionado
-            filtered_df = df[df['CountryCode'] == selected_country]
-            
-            # Exibir as cidades do país selecionado
-            st.write(f"Cidades de {selected_country}:")
-            st.dataframe(filtered_df)
-            
-            # Plotar um gráfico de barras com base na população das cidades do país selecionado
-            fig = px.bar(filtered_df, x='Name', y='Population', labels={'Name': 'Cidade', 'Population': 'População'},
-                         title=f'População das Cidades em {selected_country}')
-            fig.update_xaxes(tickangle=45)
-            fig.update_layout(height=600, width=1000)
-            st.plotly_chart(fig, use_container_width=True)
-            
-        else:
-            st.write("Nenhum resultado encontrado.")
-        
-        # Fechar o cursor e a conexão com o banco de dados
-        cursor.close()
-        connection.close()
+# Carregar os dados do arquivo CSV
+df = load_data()
+
+# Selecionar um país específico
+countries = df['CountryCode'].unique().tolist()
+selected_country = st.sidebar.selectbox("Selecione um país:", countries)
+
+# Exibir as cidades do país selecionado
+filtered_df = show_country_cities(df, selected_country)
+
+# Plotar um gráfico de barras com base na população das cidades do país selecionado
+plot_population_bar_chart(filtered_df, selected_country)
