@@ -37,8 +37,8 @@ if population_query:
     filtered_df = filtered_df[filtered_df['Population'] >= population_query]
 
 # Exibir as cidades filtradas
-st.write("Cidades Filtradas:")
-st.dataframe(filtered_df)
+# st.write("Cidades Filtradas:")
+# st.dataframe(filtered_df)
 
 # Plotar um gráfico de barras com base na população das cidades filtradas
 fig = px.bar(filtered_df, x='Name', y='Population', labels={'Name': 'Cidade', 'Population': 'População'},
